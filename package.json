@@ -1,0 +1,22 @@
+{
+  "name": "qubic-js-tools",
+  "version": "0.0.0",
+  "description": "Qubic JS tools for accounts/signing/encrypting",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "browserify src/index.js -p esmify > qubic-js-tools.js"
+  },
+  "keywords": [],
+  "author": "Matthew Darnell <matthew.darnell@protonmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "browserify-aes": "^1.2.0",
+    "pbkdf2": "^3.1.2",
+    "qubic-js": "^0.0.0"
+  },
+  "devDependencies": {
+    "browser-resolve": "^2.0.0",
+    "esmify": "^2.1.1"
+  }
+}
