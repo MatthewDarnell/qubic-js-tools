@@ -100,7 +100,7 @@ const QubicJsTools = () => {
           try {
               (qubic.crypto).then(async data => {
                   const {schnorrq, K12, kex} = data
-                  const pubKey = qubic.shiftedHexToBytes(identity.toLowerCase())
+                  const pubKey = Buffer.from(identity, 'base64')
                   const secretKey = await qubic.privateKey(seed, 0, K12)
                   const shared = kex.compressedSecretAgreement(secretKey, pubKey)
                   return res(Buffer.from(shared).toString('base64')  )
@@ -126,7 +126,10 @@ const QubicJsTools = () => {
             }
         }
         let id = await qubic.identity(seed, 0)
-        return {seed, id}
+        let { kex, K12 } = (await qubic.crypto)
+        let secretKey = await qubic.privateKey(seed, 0, K12)
+        let compressed = kex.generateCompressedPublicKey(secretKey)
+        return {seed, id, compressed: Buffer.from(compressed).toString('base64')}
     }
     return {
         Aes256Gcm,
