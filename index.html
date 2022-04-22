@@ -52,11 +52,14 @@
         //document.body.appendChild(el)
     }
 
+    const qubic = QubicJsTools();
+
     function genNewSeed() {
-        genSeed().then((seed) => {
+        qubic.genSeed().then((seed) => {
             writeToScreen(syntaxHighlight(seed))
         })
     }
+
 
     function encryptMessage() {
         let passwordEncrypt = document.getElementById('passwordEncrypt').value
@@ -64,7 +67,8 @@
         if(passwordEncrypt.length < 1 || messageToEncrypt.length < 1) {
             writeToScreen('Invalid Message/Password To Encrypt')
         }
-        encrypt(messageToEncrypt, passwordEncrypt).then(res => { writeToScreen(syntaxHighlight(res)) })
+        let aes = qubic.Aes256Gcm(passwordEncrypt);
+        aes.encrypt(messageToEncrypt, passwordEncrypt).then(res => { writeToScreen(syntaxHighlight(res)) })
     }
 
     function decryptMessage() {
@@ -73,7 +77,8 @@
         if(passwordDecrypt.length < 1 || messageToDecrypt.length < 1) {
             writeToScreen('Invalid Message/Password To Decrypt')
         }
-        decrypt(JSON.parse(messageToDecrypt), passwordDecrypt)
+        let aes = qubic.Aes256Gcm(passwordDecrypt);
+        aes.decrypt(JSON.parse(messageToDecrypt), passwordDecrypt)
             .then(writeToScreen)
             .catch(writeToScreen)
     }
@@ -85,7 +90,7 @@
             writeToScreen('Invalid Seed')
             return
         }
-        signData(seed, message).then(sig => {
+        qubic.signData(seed, message).then(sig => {
             writeToScreen(syntaxHighlight(sig))
         })
     }
@@ -96,7 +101,7 @@
             writeToScreen('Invalid Data to Verify')
             return
         }
-        verifySignature(message, JSON.parse(sig)).then(result => {
+        qubic.verifySignature(message, JSON.parse(sig)).then(result => {
             writeToScreen(result == 1 ? "VERIFIED" : "NOT VERIFIED")
         })
     }
