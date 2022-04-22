@@ -60,6 +60,16 @@
         })
     }
 
+    function genShared() {
+        let seed = document.getElementById('mySeedId').value
+        let pubKey = document.getElementById('otherPubId').value
+        if(seed.length < 1 || pubKey.length < 1) {
+            writeToScreen('Invalid Seed Or PubKey To Generated Shared Secret')
+        }
+        qubic.generateSharedSecret(seed, pubKey).then(result => {
+            writeToScreen(result)
+        })
+    }
 
     function encryptMessage() {
         let passwordEncrypt = document.getElementById('passwordEncrypt').value
@@ -111,9 +121,14 @@
         <div id="text">
             <h3>Qubic JS Tools</h3>
         </div>
-        <div id="accountDiv">
+        <div id="accountDiv" style="margin-bottom: 1%">
             <div id="seedDiv" style="display: inline-block">
                 <button onclick="genNewSeed()">Generate New Seed</button> <br/><br/><br/>
+            </div>
+            <div id="sharedDiv" style="display: inline-block; margin-left: 35%;">
+                <input type="password" id="mySeedId" placeholder="My Seed"><br/>
+                <input type="text" id="otherPubId" placeholder="Other Public Key"><br/>
+                <button onclick="genShared()">Generated Shared Secret</button>
             </div>
         </div>
         <div id="encryptionDiv">
