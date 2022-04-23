@@ -2,6 +2,7 @@ import qubic from 'qubic-js'
 import crypto from "crypto";
 const SEED_ALPHABET = 'abcdefghijklmnopqrstuvwxyz';
 const PRIVATE_KEY_LENGTH = 32;
+export const HASH_LENGTH = 64;
 export const PUBLIC_KEY_LENGTH = 32;
 export const CHECKSUM_LENGTH = 3;
 
@@ -100,9 +101,14 @@ const QubicJsTools = () => {
           try {
               (qubic.crypto).then(async data => {
                   const {schnorrq, K12, kex} = data
-                  const pubKey = Buffer.from(identity, 'base64')
+                  let pubKey = qubic.shiftedHexToBytes(
+                      identity.toLowerCase()
+                  )
+                      .slice(0, PUBLIC_KEY_LENGTH)
                   const secretKey = await qubic.privateKey(seed, 0, K12)
-                  const shared = kex.compressedSecretAgreement(secretKey, pubKey)
+                  const secretKeyHash = new Uint8Array(HASH_LENGTH);
+                  K12(secretKey, secretKeyHash, HASH_LENGTH);
+                  const shared = kex.compressedSecretAgreement(secretKeyHash, pubKey)
                   return res(Buffer.from(shared).toString('base64')  )
               })
           }  catch(error) {
@@ -125,11 +131,8 @@ const QubicJsTools = () => {
                 }
             }
         }
-        let id = await qubic.identity(seed, 0)
-        let { kex, K12 } = (await qubic.crypto)
-        let secretKey = await qubic.privateKey(seed, 0, K12)
-        let compressed = kex.generateCompressedPublicKey(secretKey)
-        return {seed, id, compressed: Buffer.from(compressed).toString('base64')}
+        const id = await qubic.identity(seed, 0)
+        return {seed, id}
     }
     return {
         Aes256Gcm,
