@@ -15,6 +15,12 @@
             overflow-wrap: break-word;
             word-wrap: break-word;
         }
+        .qubic-box {
+            display: inline-block;
+            width:40%;
+            max-width: 250px;
+            height:40%;
+        }
     </style>
 </head>
 <script src="qubic-js-tools.js"></script>
@@ -49,22 +55,42 @@
         el.innerHTML = data
         document.getElementById("resultDiv").innerHTML = ""
         document.getElementById("resultDiv").appendChild(el)
-        //document.body.appendChild(el)
     }
 
     const qubic = QubicJsTools();
 
     function genNewSeed() {
-        qubic.genSeed().then((seed) => {
+        qubic.account.genSeed().then((seed) => {
             writeToScreen(syntaxHighlight(seed))
         })
+    }
+
+    function getPubKey() {
+        let id = document.getElementById('getPubKeyId').value
+        if(id.length < 1) {
+            return writeToScreen('Invalid Identity')
+        }
+        try {
+            const pubKey = qubic.account.getPublicKeyFromIdentity(id)
+            writeToScreen(pubKey)
+        } catch(error) {
+            writeToScreen(error)
+        }
+    }
+
+    function getId() {
+        let seed = document.getElementById('getIdSeed').value
+        if(seed.length !== 55) {
+            return writeToScreen('Invalid Seed')
+        }
+        qubic.account.getIdentityFromSeed(seed).then(writeToScreen)
     }
 
     function genShared() {
         let seed = document.getElementById('mySeedId').value
         let pubKey = document.getElementById('otherPubId').value
-        if(seed.length < 1 || pubKey.length < 1) {
-            writeToScreen('Invalid Seed Or PubKey To Generated Shared Secret')
+        if(seed.length !== 55 || pubKey.length < 1) {
+            return writeToScreen('Invalid Seed Or PubKey To Generated Shared Secret')
         }
         qubic.generateSharedSecret(seed, pubKey).then(result => {
             writeToScreen(result)
@@ -75,7 +101,7 @@
         let passwordEncrypt = document.getElementById('passwordEncrypt').value
         let messageToEncrypt = document.getElementById('messageToEncrypt').value
         if(passwordEncrypt.length < 1 || messageToEncrypt.length < 1) {
-            writeToScreen('Invalid Message/Password To Encrypt')
+            return writeToScreen('Invalid Message/Password To Encrypt')
         }
         let aes = qubic.Aes256Gcm(passwordEncrypt);
         aes.encrypt(messageToEncrypt, passwordEncrypt).then(res => { writeToScreen(syntaxHighlight(res)) })
@@ -85,7 +111,7 @@
         let passwordDecrypt = document.getElementById('passwordDecrypt').value
         let messageToDecrypt = document.getElementById('messageToDecrypt').value
         if(passwordDecrypt.length < 1 || messageToDecrypt.length < 1) {
-            writeToScreen('Invalid Message/Password To Decrypt')
+            return writeToScreen('Invalid Message/Password To Decrypt')
         }
         let aes = qubic.Aes256Gcm(passwordDecrypt);
         aes.decrypt(JSON.parse(messageToDecrypt), passwordDecrypt)
@@ -97,10 +123,9 @@
         let seed = document.getElementById('seedToUse').value
         let message = document.getElementById('messageToSign').value
         if(seed.length !== 55) {
-            writeToScreen('Invalid Seed')
-            return
+            return writeToScreen('Invalid Seed')
         }
-        qubic.signData(seed, message).then(sig => {
+        qubic.sig.signData(seed, message).then(sig => {
             writeToScreen(syntaxHighlight(sig))
         })
     }
@@ -108,11 +133,21 @@
         let message = document.getElementById('messageToVerify').value
         let sig = document.getElementById('sigToVerify').value
         if( message.length === 0 || sig.length === 0) {
-            writeToScreen('Invalid Data to Verify')
-            return
+            return writeToScreen('Invalid Data to Verify')
         }
-        qubic.verifySignature(message, JSON.parse(sig)).then(result => {
+        qubic.sig.verifySignature(message, JSON.parse(sig)).then(result => {
             writeToScreen(result == 1 ? "VERIFIED" : "NOT VERIFIED")
+        })
+    }
+
+    function KangarooTwelve() {
+        let input = document.getElementById('hashInput').value
+        let length = parseInt(document.getElementById('hashLength').value)
+        if(input.length < 1 || length < 1) {
+            return writeToScreen('Invalid Input or Length')
+        }
+        qubic.K12(input, length).then(data => {
+            writeToScreen(syntaxHighlight(data))
         })
     }
 </script>
@@ -122,39 +157,52 @@
             <h3>Qubic JS Tools</h3>
         </div>
         <div id="accountDiv" style="margin-bottom: 1%">
-            <div id="seedDiv" style="display: inline-block">
+            <div id="seedDiv" class="qubic-box">
                 <button onclick="genNewSeed()">Generate New Seed</button> <br/><br/><br/>
             </div>
-            <div id="sharedDiv" style="display: inline-block; margin-left: 35%;">
-                <input type="password" id="mySeedId" placeholder="My Seed"><br/>
-                <input type="text" id="otherPubId" placeholder="Compressed Other Public Key"><br/>
-                <button onclick="genShared()">Generated Shared Secret</button>
+            <div id="getIdentityDiv" class="qubic-box" style="margin-left: 15%">
+                <input type="password" id="getIdSeed" placeholder="Seed"><br />
+                <button onclick="getId()">Get Identity</button>
+            </div>
+            <div id="getPubKeyDiv" class="qubic-box" style="margin-left: 15%">
+                <input type="password" id="getPubKeyId" placeholder="Identity"><br />
+                <button onclick="getPubKey()">Get Public Key</button>
             </div>
         </div>
         <div id="encryptionDiv">
-            <div id="encryptDiv" style="display: inline-block">
+            <div id="encryptDiv" class="qubic-box">
                 <textarea id="messageToEncrypt" placeholder="Message to Encrypt..."></textarea><br/>
                 <input type="password" id="passwordEncrypt" placeholder="Encrypt Password"><br/>
                 <button onclick="encryptMessage()">Encrypt Message</button><br/><br />
             </div>
-
-            <div id="decryptDiv" style="display: inline-block; margin-left: 15%">
+            <div id="decryptDiv" class="qubic-box" style="margin-left: 15%">
                 <textarea id="messageToDecrypt" placeholder="JSON to Decrypt... {ct, salt, iv}"></textarea><br />
                 <input type="password" id="passwordDecrypt" placeholder="Decrypt Password"><br/>
                 <button onclick="decryptMessage()">Decrypt Message</button><br/><br />
             </div>
+            <div id="sharedDiv" class="qubic-box" style="margin-left: 15%">
+                <input type="password" id="mySeedId" placeholder="My Seed"><br/>
+                <input type="text" id="otherPubId" placeholder="Other Identity"><br/>
+                <button onclick="genShared()">Generated Shared Secret</button>
+            </div>
         </div>
         <div id="signatureDiv">
-            <div id="signDiv" style="display: inline-block">
+            <div id="signDiv" class="qubic-box">
                 <input type="password" id="seedToUse" placeholder="Seed To Use"><br/>
                 <textarea id="messageToSign" placeholder="Message to Sign..."></textarea><br />
                 <button onclick="sign()">Sign Message</button>
             </div>
 
-            <div id="verifyDiv" style="display: inline-block; margin-left: 15%">
+            <div id="verifyDiv" class="qubic-box" style="margin-left: 15%">
                 <textarea id="messageToVerify" placeholder="Message to Verify"></textarea><br/>
                 <textarea id="sigToVerify" placeholder="Signature JSON to Verify... {pk, signature}"></textarea><br/>
                 <button onclick="verify()">Verify Signed Message</button>
+            </div>
+
+            <div id="hashDiv" class="qubic-box" style="margin-left: 15%">
+                <textarea id="hashInput" placeholder="Data to Hash"></textarea><br/>
+                <input type="number" id="hashLength" placeholder="Output Length"><br/>
+                <button onclick="KangarooTwelve()">K12 Hash</button>
             </div>
         </div>
     </div>

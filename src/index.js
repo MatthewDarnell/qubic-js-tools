@@ -56,90 +56,121 @@ const QubicJsTools = () => {
             decrypt
         }
     }
-    const signData = async (seed, data) => {
-        return new Promise((res, rej) => {
-            try {
-                (qubic.crypto).then(c => {
-                    const { schnorrq, K12 } = c
-                    const publicKeyWithChecksum = new Uint8Array(PUBLIC_KEY_LENGTH + CHECKSUM_LENGTH);
-                    const sk = qubic.privateKey(seed, 0, K12)
-                    let pk = new Uint8Array(PUBLIC_KEY_LENGTH + CHECKSUM_LENGTH);
-                    pk.set(schnorrq.generatePublicKey(sk));
-                    let signature = schnorrq.sign(sk, pk, data)
-                    pk = Buffer.from(pk).toString('base64');
-                    signature = Buffer.from(signature).toString('base64');
-                    return res({ pk, signature })
-                })
-            } catch(error) {
-                console.error(`Error Signing Data: ${error}`)
-                return rej(error)
-            }
-        })
-    }
-    const verifySignature = (message, sig) => {
-        return new Promise((res, rej) => {
-            try {
-                if(!sig.hasOwnProperty('pk') || !sig.hasOwnProperty('signature')) {
-                    return rej("Malformed Signature Data")
-                }
-                const pk = Buffer.from(sig.pk, 'base64');
-                const signature = Buffer.from(sig.signature, 'base64');
-                (qubic.crypto).then(data => {
-                    const {schnorrq, K12} = data
-                    const verified = schnorrq.verify(pk, message, signature)
-                    return res(verified)
-                })
-            } catch(error) {
-                console.error(`Error Verifying Signature: ${error}`)
-                return rej(error)
-            }
-        })
-    }
-
     const generateSharedSecret = (seed, identity) => {
         return new Promise((res, rej) => {
-          try {
-              (qubic.crypto).then(async data => {
-                  const {schnorrq, K12, kex} = data
-                  let pubKey = qubic.shiftedHexToBytes(
-                      identity.toLowerCase()
-                  )
-                      .slice(0, PUBLIC_KEY_LENGTH)
-                  const secretKey = await qubic.privateKey(seed, 0, K12)
-                  const secretKeyHash = new Uint8Array(HASH_LENGTH);
-                  K12(secretKey, secretKeyHash, HASH_LENGTH);
-                  const shared = kex.compressedSecretAgreement(secretKeyHash, pubKey)
-                  return res(Buffer.from(shared).toString('base64')  )
-              })
-          }  catch(error) {
-              console.error(`Error Generating Shared Secret: ${error}`)
-              return rej(error)
-          }
+            try {
+                (qubic.crypto).then(async data => {
+                    const {schnorrq, K12, kex} = data
+                    let pubKey = qubic.shiftedHexToBytes(
+                        identity.toLowerCase()
+                    )
+                        .slice(0, PUBLIC_KEY_LENGTH)
+                    const secretKey = await qubic.privateKey(seed, 0, K12)
+                    const secretKeyHash = new Uint8Array(HASH_LENGTH);
+                    K12(secretKey, secretKeyHash, HASH_LENGTH);
+                    const shared = kex.compressedSecretAgreement(secretKeyHash, pubKey)
+                    return res(Buffer.from(shared).toString('base64')  )
+                })
+            }  catch(error) {
+                console.error(`Error Generating Shared Secret: ${error}`)
+                return rej(error)
+            }
         })
     }
-
-    const genSeed = async () => {
-        let seed = ""
-        while(seed.length < 55) {
-            let random = await crypto.randomBytes(127).toString('hex')
-            for(let i = 0; i < random.length; i+= 2) {
-                let c = random[i] + random[i+1]
-                let int = parseInt(`0x${c}`, 16)
-                if(int >= 0 && int < 26) {
-                    seed += SEED_ALPHABET[int]
-                    if(seed.length >= 55) break
+    const account = {
+        getIdentityFromSeed: (seed, index = 0) => {
+            return qubic.identity(seed, index)
+        },
+        getPublicKeyFromIdentity: identity => {
+            const pubKey = qubic.shiftedHexToBytes(
+                identity.toLowerCase()
+            )
+                .slice(0, PUBLIC_KEY_LENGTH)
+            return Buffer.from(pubKey).toString('base64')
+        },
+        genSeed: async () => {
+            let seed = ""
+            while(seed.length < 55) {
+                let random = await crypto.randomBytes(127).toString('hex')
+                for(let i = 0; i < random.length; i+= 2) {
+                    let c = random[i] + random[i+1]
+                    let int = parseInt(`0x${c}`, 16)
+                    if(int >= 0 && int < 26) {
+                        seed += SEED_ALPHABET[int]
+                        if(seed.length >= 55) break
+                    }
                 }
             }
+            const id = await qubic.identity(seed, 0)
+            return {seed, id}
         }
-        const id = await qubic.identity(seed, 0)
-        return {seed, id}
+    }
+    const sig = {
+        signData: async (seed, data) => {
+            return new Promise((res, rej) => {
+                try {
+                    (qubic.crypto).then(c => {
+                        const { schnorrq, K12 } = c
+                        const publicKeyWithChecksum = new Uint8Array(PUBLIC_KEY_LENGTH + CHECKSUM_LENGTH);
+                        const sk = qubic.privateKey(seed, 0, K12)
+                        let pk = new Uint8Array(PUBLIC_KEY_LENGTH + CHECKSUM_LENGTH);
+                        pk.set(schnorrq.generatePublicKey(sk));
+                        let signature = schnorrq.sign(sk, pk, data)
+                        pk = Buffer.from(pk).toString('base64');
+                        signature = Buffer.from(signature).toString('base64');
+                        return res({ pk, signature })
+                    })
+                } catch(error) {
+                    console.error(`Error Signing Data: ${error}`)
+                    return rej(error)
+                }
+            })
+        },
+        verifySignature: (message, sig) => {
+            return new Promise((res, rej) => {
+                try {
+                    if(!sig.hasOwnProperty('pk') || !sig.hasOwnProperty('signature')) {
+                        return rej("Malformed Signature Data")
+                    }
+                    const pk = Buffer.from(sig.pk, 'base64');
+                    const signature = Buffer.from(sig.signature, 'base64');
+                    (qubic.crypto).then(data => {
+                        const {schnorrq, K12} = data
+                        const verified = schnorrq.verify(pk, message, signature)
+                        return res(verified)
+                    })
+                } catch(error) {
+                    console.error(`Error Verifying Signature: ${error}`)
+                    return rej(error)
+                }
+            })
+        }
+    }
+
+    const K12 = (data, outputLength) => {
+        if (!Number.isInteger(outputLength) || outputLength < 1) {
+            throw new Error('Illegal Output Length.');
+        }
+        return new Promise((res, rej) => {
+            try {
+                (qubic.crypto).then(crypt => {
+                    const output = new Uint8Array(outputLength);
+                    crypt.K12(data, output, outputLength, 0)
+                    return res(
+                        Buffer.from(output).toString('base64')
+                    )
+                })
+            } catch(err) {
+                rej(err)
+            }
+        })
     }
     return {
+        account,
         Aes256Gcm,
-        signData,
-        verifySignature,
-        genSeed,
-        generateSharedSecret
+        generateSharedSecret,
+        sig,
+        K12
     }
 }
 window.QubicJsTools = QubicJsTools;
