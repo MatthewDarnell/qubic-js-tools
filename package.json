@@ -5,18 +5,24 @@
   "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "build": "browserify src/index.js -p esmify > qubic-js-tools.js"
+    "build": "browserify -t [ babelify --presets [ @babel/preset-env ] --plugins [ @babel/transform-runtime ] --global ] -p esmify src/index.js > qubic-js-tools.js"
   },
   "keywords": [],
   "author": "Matthew Darnell <matthew.darnell@protonmail.com>",
   "license": "ISC",
   "dependencies": {
-    "browserify-aes": "^1.2.0",
-    "pbkdf2": "^3.1.2",
+    "@babel/runtime": "^7.17.9",
     "qubic-js": "^0.0.0"
   },
   "devDependencies": {
+    "@babel/cli": "^7.17.6",
+    "@babel/core": "^7.17.9",
+    "@babel/plugin-transform-runtime": "^7.17.0",
+    "@babel/preset-env": "^7.16.11",
+    "@babel/preset-es2015": "^7.0.0-beta.53",
+    "babelify": "^10.0.0",
     "browser-resolve": "^2.0.0",
+    "browserify": "^17.0.0",
     "esmify": "^2.1.1"
   }
 }
